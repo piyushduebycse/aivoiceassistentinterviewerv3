@@ -4,21 +4,15 @@ import { z } from "zod";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-//import { auth } from "@/firebase/client";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-/*import {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-} from "firebase/auth";*/
-
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-/*
-import { signIn, signUp } from "@/lib/actions/auth.action";*/
 import FormField from "@/components/FormField";
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "@firebase/auth";
+import {auth} from "@/firebase/client";
+import {signIn, signUp} from "@/lib/actions/auth.action";
 
 const authFormSchema = (type: FormType) => {
     return z.object({
@@ -40,8 +34,8 @@ const AuthForm = ({ type }: { type: FormType }) => {
             password: "",
         },
     });
-/*
-    const onSubmit = async (data: z.infer<typeof formSchema>) => {
+
+async function onSubmit(data: z.infer<typeof formSchema>) {
         try {
             if (type === "sign-up") {
                 const { name, email, password } = data;
@@ -94,7 +88,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             toast.error(`There was an error: ${error}`);
         }
     };
-*/
+
     const isSignIn = type === "sign-in";
 
     return (
@@ -109,7 +103,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
                 <Form {...form}>
                     <form
-                       /* onSubmit={form.handleSubmit(onSubmit)}*/
+                        onSubmit={form.handleSubmit(onSubmit)}
                         className="w-full space-y-6 mt-4 form"
                     >
                         {!isSignIn && (
