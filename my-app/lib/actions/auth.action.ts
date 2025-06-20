@@ -41,7 +41,8 @@ export async function signUp(params: SignUpParams) {
         await db.collection("users").doc(uid).set({
             name,
             email,
-
+            // profileURL,
+            // resumeURL,
         });
 
         return {
@@ -127,5 +128,5 @@ export async function getCurrentUser(): Promise<User | null> {
 // Check if user is authenticated
 export async function isAuthenticated() {
     const user = await getCurrentUser();
-    return !!user; //false and false gives true
+    return !!user;
 }
