@@ -42,12 +42,6 @@ const Agent = ({
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [error, setError] = useState<string>("");
     const [lastMessage, setLastMessage] = useState<string>("");
-    const [metadata, setMetadata] = useState({
-        role: "",
-        level: "",
-        type: "",
-        techstack: [] as string[],
-    });
 
     useEffect(() => {
         const onCallStart = () => {
@@ -69,32 +63,6 @@ const Agent = ({
                     content: message.transcript,
                 };
                 setMessages((prev) => [...prev, newMessage]);
-
-                const content = message.transcript.toLowerCase();
-
-                if (content.includes("frontend") || content.includes("backend") || content.includes("fullstack")) {
-                    setMetadata((prev) => ({ ...prev, role: content }));
-                }
-
-                if (content.includes("intern") || content.includes("junior") || content.includes("entry") || content.includes("fresher")) {
-                    setMetadata((prev) => ({ ...prev, level: "Entry" }));
-                } else if (content.includes("mid") || content.includes("intermediate")) {
-                    setMetadata((prev) => ({ ...prev, level: "Mid" }));
-                } else if (content.includes("senior") || content.includes("lead")) {
-                    setMetadata((prev) => ({ ...prev, level: "Senior" }));
-                }
-
-                if (content.includes("technical") || content.includes("behavioral")) {
-                    setMetadata((prev) => ({ ...prev, type: content.includes("technical") ? "Technical" : "Behavioral" }));
-                }
-
-                if (content.includes("react") || content.includes("node") || content.includes("python") || content.includes("java")) {
-                    const techs = content
-                        .split(/,|and/gi)
-                        .map((s: string) => s.trim())
-                        .filter((s: string) => s.length > 1);
-                    setMetadata((prev) => ({ ...prev, techstack: techs }));
-                }
             }
         };
 
@@ -180,42 +148,23 @@ const Agent = ({
                     throw new Error("NEXT_PUBLIC_VAPI_WORKFLOW_ID is not configured");
                 }
 
-                const response = await fetch("/api/vapi/generate", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        role: metadata.role || "Software Engineer",
-                        level: metadata.level || "Entry",
-                        type: metadata.type || "Technical",
-                        techstack: metadata.techstack.join(", ") || "React, Node",
-                        amount: 5,
-                        userid: userId,
-                    }),
-                });
-
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(data.error || "Failed to create interview");
-                }
-
                 await vapi.start(undefined, undefined, undefined, workflowId);
+
                 vapi.send({
                     type: "control",
-                    control: "set-variable" as any,
+                    control: "set-variable",
                     variable: {
                         name: "userid",
                         value: userId,
                     },
                 }as any);
-                vapi.send({
 
-                    type: "control",
-                    control: "say-first-message",
-                });
-
+                setTimeout(() => {
+                    vapi.send({
+                        type: "control",
+                        control: "say-first-message",
+                    });
+                }, 500);
 
                 console.log("Call started successfully with workflow");
             } else {
