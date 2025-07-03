@@ -10,6 +10,7 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "Content-Type, x-vercel-protection-bypass",
 };
 
+
 // GET Route
 export async function GET() {
     return new Response(JSON.stringify({
