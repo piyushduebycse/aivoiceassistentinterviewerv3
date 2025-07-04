@@ -72,7 +72,10 @@ export async function POST(request: Request) {
         The tech stack used in the job is: ${techstack}.
         The focus between behavioural and technical questions should lean towards: ${type}.
         The amount of questions required is: ${amount}.
-        Return as ["Question 1", "Question 2", ...]
+        Respond with a JSON array of interview questions **only**, like this:
+        ["Question 1", "Question 2", "Question 3"]
+        DO NOT include any explanation, heading, or preamble. Only return the JSON array.
+
       `,
         });
 
