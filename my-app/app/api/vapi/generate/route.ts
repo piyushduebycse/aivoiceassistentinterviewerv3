@@ -6,11 +6,9 @@ import { getRandomInterviewCover } from "@/lib/utils";
 // CORS headers helper
 const corsHeaders = {
     "Access-Control-Allow-Origin": "http://localhost:3004",
-
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, x-vercel-protection-bypass",
 };
-
 
 // GET Route
 export async function GET() {
@@ -40,31 +38,27 @@ export async function POST(request: Request) {
     console.log("Headers:", Object.fromEntries(request.headers.entries()));
     console.log("Protection header:", request.headers.get("x-vercel-protection-bypass"));
 
+    let body: any;
+
     try {
-        const body = await request.json();
-        const { type, role, level, techstack, amount } = body;
+        body = await request.json();
+    } catch (e) {
+        console.warn("⚠️ No valid JSON body found. Using default values.");
+        body = {};
+    }
 
-        const missingFields = [];
-        if (!type) missingFields.push("type");
-        if (!role) missingFields.push("role");
-        if (!level) missingFields.push("level");
-        if (!techstack) missingFields.push("techstack");
-        if (!amount) missingFields.push("amount");
+    // Defaults if missing
+    const {
+        type = "technical",
+        role = "Frontend Developer",
+        level = "Junior",
+        techstack = "React, JavaScript",
+        amount = 5
+    } = body;
 
-        if (missingFields.length > 0) {
-            return new Response(JSON.stringify({
-                success: false,
-                error: `Missing required fields: ${missingFields.join(', ')}`,
-                received: body
-            }), {
-                status: 400,
-                headers: {
-                    "Content-Type": "application/json",
-                    ...corsHeaders
-                }
-            });
-        }
+    console.log("Using values:", { type, role, level, techstack, amount });
 
+    try {
         const { text: questions } = await generateText({
             model: google("gemini-2.0-flash-001"),
             prompt: `Prepare questions for a job interview.
@@ -76,7 +70,6 @@ export async function POST(request: Request) {
         Respond with a JSON array of interview questions **only**, like this:
         ["Question 1", "Question 2", "Question 3"]
         DO NOT include any explanation, heading, or preamble. Only return the JSON array.
-
       `,
         });
 
