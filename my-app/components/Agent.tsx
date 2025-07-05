@@ -5,8 +5,9 @@ import { vapi } from "@/lib/vapi.sdk";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-//import { generator, interviewer } from "@/constants";
+
 import { createFeedback } from "@/lib/actions/general.action";
+import {interviewer} from "@/constants";
 
 enum CallStatus {
     INACTIVE = "INACTIVE",
@@ -169,22 +170,22 @@ const Agent = ({
 
                 console.log("Call started successfully with workflow");
             } else {
+
                 let formattedQuestions = "";
                 if (questions) {
-                    formattedQuestions = questions.map((question) => `- ${question}`).join("\n");
+                    formattedQuestions = questions
+                        .map((question) => `- ${question}`)
+                        .join("\n");
                 }
 
-                await vapi.start(undefined, {
+                await vapi.start(interviewer, {
                     variableValues: {
-                        userid: userId,
                         questions: formattedQuestions,
                     },
-                }, undefined,process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID ); // same or different workflow ID
-
-                console.log("Call started successfully with preloaded questions");
+                });
             }
-
-        } catch (error: any) {
+        }
+        catch (error: any) {
             console.error("Failed to start call:", error);
             setCallStatus(CallStatus.INACTIVE);
             setError(error.message || "Failed to start call");
