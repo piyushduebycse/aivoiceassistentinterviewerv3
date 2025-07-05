@@ -5,7 +5,7 @@ import { getRandomInterviewCover } from "@/lib/utils";
 
 // CORS headers helper
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "http://localhost:3004",
+    "Access-Control-Allow-Origin": "http://localhost:3000",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, x-vercel-protection-bypass",
 };
@@ -70,6 +70,8 @@ export async function POST(request: Request) {
         Respond with a JSON array of interview questions **only**, like this:
         ["Question 1", "Question 2", "Question 3"]
         DO NOT include any explanation, heading, or preamble. Only return the JSON array.
+        Respond with only the JSON array. No code formatting, no "json", no explanation. Do not wrap in backticks.
+
       `,
         });
 
