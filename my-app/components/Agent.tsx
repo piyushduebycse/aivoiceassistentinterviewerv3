@@ -174,12 +174,16 @@ const Agent = ({
                     formattedQuestions = questions.map((question) => `- ${question}`).join("\n");
                 }
 
-                await vapi.start("interviewer", {
+                await vapi.start(undefined, {
                     variableValues: {
+                        userid: userId,
                         questions: formattedQuestions,
                     },
-                });
+                }, undefined,process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID ); // same or different workflow ID
+
+                console.log("Call started successfully with preloaded questions");
             }
+
         } catch (error: any) {
             console.error("Failed to start call:", error);
             setCallStatus(CallStatus.INACTIVE);
