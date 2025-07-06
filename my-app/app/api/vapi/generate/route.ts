@@ -5,7 +5,7 @@ import { getRandomInterviewCover } from "@/lib/utils";
 
 // CORS headers helper
 const corsHeaders = {
-    "Access-Control-Allow-Origin":"*",
+    "Access-Control-Allow-Origin":"http://localhost:3000",
 
     /*"Access-Control-Allow-Origin":
         process.env.NODE_ENV === "development"
