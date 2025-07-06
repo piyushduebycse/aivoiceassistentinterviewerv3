@@ -84,7 +84,7 @@ const Agent = ({
                 console.log("Call ended normally by assistant.");
                 return;
             }
-            setError(error.message || "An error occurred");
+            setError(error.message || "An error occurred!!!");
             setCallStatus(CallStatus.INACTIVE);
         };
 
