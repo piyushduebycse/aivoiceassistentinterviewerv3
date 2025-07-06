@@ -5,7 +5,12 @@ import { getRandomInterviewCover } from "@/lib/utils";
 
 // CORS headers helper
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "http://localhost:3000",
+    "Access-Control-Allow-Origin":
+        process.env.NODE_ENV === "development"
+            ? "http://localhost:3000"
+            : "https://your-vercel-project.vercel.app",
+
+ //   "Access-Control-Allow-Origin": "http://localhost:3000",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, x-vercel-protection-bypass",
 };
