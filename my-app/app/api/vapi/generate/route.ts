@@ -10,7 +10,7 @@ const corsHeaders = {
     "Access-Control-Allow-Origin":
         process.env.NODE_ENV === "development"
             ? "http://localhost:3000"
-            : "https://ai-voice-agent-interview-platform-9hjba7zeu.vercel.app",
+            : "https://ai-voice-agent-interview-platform-two.vercel.app",
 
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, x-vercel-protection-bypass",
