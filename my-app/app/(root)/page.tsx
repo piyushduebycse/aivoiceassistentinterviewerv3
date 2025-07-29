@@ -22,7 +22,7 @@ async function Home() {
         <>
             <section className="card-cta">
                 <div className="flex flex-col gap-6 max-w-lg">
-                    <h2>Get Interview-Ready with AI-Powered Practice & Feedback</h2>
+                    <h2>Get Interview-Ready with Voice-Powered AI Interview Practice</h2>
                     <p className="text-lg">
                         Practice real interview questions & get instant feedback
                     </p>
@@ -34,7 +34,7 @@ async function Home() {
 
                 <Image
                     src="/robot.png"
-                    alt="robo-dude"
+                    alt="robot picture"
                     width={400}
                     height={400}
                     className="max-sm:hidden"
@@ -62,6 +62,8 @@ async function Home() {
                     )}
                 </div>
             </section>
+
+
 
             <section className="flex flex-col gap-6 mt-8">
                 <h2>Take Interviews</h2>
