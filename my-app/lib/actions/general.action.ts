@@ -1,56 +1,69 @@
 "use server";
 
-import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
-
 import { db } from "@/firebase/admin";
-import { feedbackSchema } from "@/constants";
 
 export async function createFeedback(params: CreateFeedbackParams) {
     const { interviewId, userId, transcript, feedbackId } = params;
 
     try {
         const formattedTranscript = transcript
-            .map(
-                (sentence: { role: string; content: string }) =>
-                    `- ${sentence.role}: ${sentence.content}\n`
-            )
-            .join("");
+            .map((s: { role: string; content: string }) => `${s.role}: ${s.content}`)
+            .join("\n");
 
-        const { object } = await generateObject({
-            model: google("gemini-2.0-flash-001", {
-                structuredOutputs: false,
+        const prompt = `You are an expert interview coach analyzing a mock job interview transcript.
+
+Transcript:
+${formattedTranscript}
+
+Evaluate the candidate and return ONLY a valid JSON object (no markdown, no explanation) in this exact format:
+{
+  "totalScore": <number 0-100>,
+  "categoryScores": [
+    { "name": "Communication Skills", "score": <0-100>, "comment": "<specific feedback>" },
+    { "name": "Technical Knowledge", "score": <0-100>, "comment": "<specific feedback>" },
+    { "name": "Problem Solving", "score": <0-100>, "comment": "<specific feedback>" },
+    { "name": "Cultural Fit", "score": <0-100>, "comment": "<specific feedback>" },
+    { "name": "Confidence and Clarity", "score": <0-100>, "comment": "<specific feedback>" }
+  ],
+  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+  "areasForImprovement": ["<area 1>", "<area 2>", "<area 3>"],
+  "finalAssessment": "<2-3 sentence overall summary of the candidate's performance>"
+}`;
+
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.4,
+                response_format: { type: "json_object" },
             }),
-            schema: feedbackSchema,
-            prompt: `
-        You are an AI interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories. Be thorough and detailed in your analysis. Don't be lenient with the candidate. If there are mistakes or areas for improvement, point them out.
-        Transcript:
-        ${formattedTranscript}
-
-        Please score the candidate from 0 to 100 in the following areas. Do not add categories other than the ones provided:
-        - **Communication Skills**: Clarity, articulation, structured responses.
-        - **Technical Knowledge**: Understanding of key concepts for the role.
-        - **Problem-Solving**: Ability to analyze problems and propose solutions.
-        - **Cultural & Role Fit**: Alignment with company values and job role.
-        - **Confidence & Clarity**: Confidence in responses, engagement, and clarity.
-        `,
-            system:
-                "You are a professional interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories",
         });
 
+        if (!groqRes.ok) {
+            throw new Error(`Groq API error: ${groqRes.status}`);
+        }
+
+        const groqData = await groqRes.json();
+        const raw = groqData.choices?.[0]?.message?.content ?? "{}";
+        const object = JSON.parse(raw);
+
         const feedback = {
-            interviewId: interviewId,
-            userId: userId,
-            totalScore: object.totalScore,
-            categoryScores: object.categoryScores,
-            strengths: object.strengths,
-            areasForImprovement: object.areasForImprovement,
-            finalAssessment: object.finalAssessment,
+            interviewId,
+            userId,
+            totalScore: object.totalScore ?? 0,
+            categoryScores: object.categoryScores ?? [],
+            strengths: object.strengths ?? [],
+            areasForImprovement: object.areasForImprovement ?? [],
+            finalAssessment: object.finalAssessment ?? "",
             createdAt: new Date().toISOString(),
         };
 
         let feedbackRef;
-
         if (feedbackId) {
             feedbackRef = db.collection("feedback").doc(feedbackId);
         } else {
@@ -58,7 +71,6 @@ export async function createFeedback(params: CreateFeedbackParams) {
         }
 
         await feedbackRef.set(feedback);
-
         return { success: true, feedbackId: feedbackRef.id };
     } catch (error) {
         console.error("Error saving feedback:", error);
@@ -97,16 +109,15 @@ export async function getLatestInterviews(
 
     const interviews = await db
         .collection("interviews")
-        .orderBy("createdAt", "desc")
         .where("finalized", "==", true)
-        .where("userId", "!=", userId)
-        .limit(limit)
+        .orderBy("createdAt", "desc")
+        .limit(limit + 10)
         .get();
 
-    return interviews.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-    })) as Interview[];
+    return interviews.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Interview))
+        .filter((interview) => interview.userId !== userId)
+        .slice(0, limit);
 }
 
 export async function getInterviewsByUserId(

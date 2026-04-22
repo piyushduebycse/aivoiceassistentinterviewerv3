@@ -1,122 +1,103 @@
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
 import { db } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
 
-// CORS headers helper
 const corsHeaders = {
-    //"Access-Control-Allow-Origin":"http://localhost:3000",
-
     "Access-Control-Allow-Origin":
         process.env.NODE_ENV === "development"
             ? "http://localhost:3000"
             : "https://ai-voice-agent-interview-platform-two.vercel.app",
-
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, x-vercel-protection-bypass",
 };
 
-// GET Route
 export async function GET() {
-    return new Response(JSON.stringify({
-        success: true,
-        message: "API is working",
-        timestamp: new Date().toISOString()
-    }), {
-        headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders
-        }
+    return new Response(JSON.stringify({ success: true, message: "API is working" }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 }
 
-// OPTIONS Route (Preflight CORS)
 export async function OPTIONS() {
-    return new Response(null, {
-        status: 204,
-        headers: corsHeaders
-    });
+    return new Response(null, { status: 204, headers: corsHeaders });
 }
 
-// POST Route
 export async function POST(request: Request) {
-    console.log("POST Request Started");
-    console.log("Headers:", Object.fromEntries(request.headers.entries()));
-    console.log("Protection header:", request.headers.get("x-vercel-protection-bypass"));
-
     let body: any;
-
     try {
         body = await request.json();
-    } catch (e) {
-        console.warn("⚠️ No valid JSON body found. Using default values.");
+    } catch {
         body = {};
     }
 
-    // Defaults if missing
     const {
-        type = "technical",
+        type = "Technical",
         role = "Frontend Developer",
         level = "Junior",
         techstack = "React, JavaScript",
-        amount = 5
+        amount = 5,
+        userId = "vapi-user-" + Date.now(),
     } = body;
 
-    console.log("Using values:", { type, role, level, techstack, amount });
+    console.log("Generating interview:", { type, role, level, techstack, amount, userId });
 
     try {
-        const { text: questions } = await generateText({
-            model: google("gemini-2.0-flash-001"),
-            prompt: `Prepare questions for a job interview.
-        The job role is ${role}.
-        The job experience level is ${level}.
-        The tech stack used in the job is: ${techstack}.
-        The focus between behavioural and technical questions should lean towards: ${type}.
-        The amount of questions required is: ${amount}.
-        Respond with a JSON array of interview questions **only**, like this:
-        ["Question 1", "Question 2", "Question 3"]
-        DO NOT include any explanation, heading, or preamble. Only return the JSON array.
-        Respond with only the JSON array. No code formatting, no "json", no explanation. Do not wrap in backticks.
-
-      `,
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    {
+                        role: "user",
+                        content: `Generate exactly ${amount} interview questions for a ${level} ${role} position.
+The tech stack is: ${techstack}.
+Focus: ${type} questions.
+Return ONLY a JSON array of strings. No explanation, no markdown, no extra text.
+Example: ["Question 1", "Question 2", "Question 3"]`,
+                    },
+                ],
+                temperature: 0.7,
+            }),
         });
+
+        if (!groqRes.ok) {
+            const err = await groqRes.text();
+            throw new Error(`Groq API error ${groqRes.status}: ${err}`);
+        }
+
+        const groqData = await groqRes.json();
+        const raw = groqData.choices?.[0]?.message?.content ?? "";
+        console.log("Groq raw response:", raw);
+
+        const match = raw.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error("No JSON array in Groq response: " + raw);
+
+        const questions = JSON.parse(match[0]);
 
         const interview = {
             role,
             type,
             level,
-            techstack: techstack.split(","),
-            questions: JSON.parse(questions.trim().replace(/^`+|`+$/g, "")),
-
-            userId: "vapi-user-" + Date.now(),
+            techstack: techstack.split(",").map((t: string) => t.trim()),
+            questions,
+            userId,
             finalized: true,
             coverImage: getRandomInterviewCover(),
             createdAt: new Date().toISOString(),
         };
 
-        await db.collection("interviews").add(interview);
+        const docRef = await db.collection("interviews").add(interview);
 
-        return new Response(JSON.stringify({
-            success: true,
-            message: "Interview generated successfully"
-        }), {
-            headers: {
-                "Content-Type": "application/json",
-                ...corsHeaders
-            }
+        return new Response(JSON.stringify({ success: true, interviewId: docRef.id }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders },
         });
-
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : undefined
-        }), {
-            status: 500,
-            headers: {
-                "Content-Type": "application/json",
-                ...corsHeaders
-            }
-        });
+        console.error("❌ Generate error:", error);
+        return new Response(
+            JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
     }
 }

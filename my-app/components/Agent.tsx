@@ -144,31 +144,20 @@ const Agent = ({
 
         try {
             if (type === "generate") {
-                const workflowId = process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID;
+                const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
 
-                if (!workflowId) {
-                    throw new Error("NEXT_PUBLIC_VAPI_WORKFLOW_ID is not configured");
+                if (!assistantId) {
+                    throw new Error("NEXT_PUBLIC_VAPI_ASSISTANT_ID is not configured");
                 }
 
-                await vapi.start(undefined, undefined, undefined, workflowId);
-
-                vapi.send({
-                    type: "control",
-                    control: "set-variable",
-                    variable: {
-                        name: "userid",
-                        value: userId,
+                await vapi.start(assistantId, {
+                    variableValues: {
+                        userid: userId,
+                        userName,
                     },
-                }as any);
+                });
 
-                setTimeout(() => {
-                    vapi.send({
-                        type: "control",
-                        control: "say-first-message",
-                    });
-                }, 500);
-
-                console.log("Call started successfully with workflow");
+                console.log("Call started successfully with assistant");
             } else {
 
                 let formattedQuestions = "";
@@ -181,6 +170,7 @@ const Agent = ({
                 await vapi.start(interviewer, {
                     variableValues: {
                         questions: formattedQuestions,
+                        userName,
                     },
                 });
             }

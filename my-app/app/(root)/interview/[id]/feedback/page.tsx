@@ -1,114 +1,127 @@
 import dayjs from "dayjs";
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
-
-import {
-    getFeedbackByInterviewId,
-    getInterviewById,
-} from "@/lib/actions/general.action";
-import { Button } from "@/components/ui/button";
+import { getFeedbackByInterviewId, getInterviewById } from "@/lib/actions/general.action";
 import { getCurrentUser } from "@/lib/actions/auth.action";
+import { Button } from "@/components/ui/button";
+
+const scoreColor = (score: number) => {
+    if (score >= 80) return "text-green-400";
+    if (score >= 60) return "text-yellow-400";
+    return "text-red-400";
+};
+
+const scoreBarColor = (score: number) => {
+    if (score >= 80) return "bg-green-500";
+    if (score >= 60) return "bg-yellow-500";
+    return "bg-red-500";
+};
 
 const Feedback = async ({ params }: RouteParams) => {
     const { id } = await params;
     const user = await getCurrentUser();
+    if (!user) redirect("/sign-in");
 
     const interview = await getInterviewById(id);
     if (!interview) redirect("/");
 
-    const feedback = await getFeedbackByInterviewId({
-        interviewId: id,
-        userId: user?.id!,
-    });
+    const feedback = await getFeedbackByInterviewId({ interviewId: id, userId: user.id! });
+    if (!feedback) redirect("/");
+
+    const totalScore = feedback.totalScore ?? 0;
 
     return (
-        <section className="section-feedback">
-            <div className="flex flex-row justify-center">
-                <h1 className="text-4xl font-semibold">
-                    Feedback on the Interview -{" "}
-                    <span className="capitalize">{interview.role}</span> Interview
-                </h1>
+        <section className="flex flex-col gap-8 max-w-4xl mx-auto w-full pb-16">
+
+            {/* Header */}
+            <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-3xl font-bold capitalize">{interview.role} Interview Report</h1>
+                <p className="text-gray-400 text-sm">
+                    {dayjs(feedback.createdAt).format("MMMM D, YYYY · h:mm A")}
+                </p>
             </div>
 
-            <div className="flex flex-row justify-center ">
-                <div className="flex flex-row gap-5">
-                    {/* Overall Impression */}
-                    <div className="flex flex-row gap-2 items-center">
-                        <Image src="/star.svg" width={22} height={22} alt="star" />
-                        <p>
-                            Overall Impression:{" "}
-                            <span className="text-primary-200 font-bold">
-                {feedback?.totalScore}
-              </span>
-                            /100
-                        </p>
-                    </div>
+            {/* Overall Score */}
+            <div className="card flex flex-col items-center gap-4 py-10">
+                <p className="text-gray-400 text-sm uppercase tracking-widest">Overall Score</p>
+                <div className={`text-7xl font-bold ${scoreColor(totalScore)}`}>
+                    {totalScore}<span className="text-3xl text-gray-500">/100</span>
+                </div>
+                <p className="text-gray-300 text-center max-w-2xl leading-relaxed">
+                    {feedback.finalAssessment}
+                </p>
+            </div>
 
-                    {/* Date */}
-                    <div className="flex flex-row gap-2">
-                        <Image src="/calendar.svg" width={22} height={22} alt="calendar" />
-                        <p>
-                            {feedback?.createdAt
-                                ? dayjs(feedback.createdAt).format("MMM D, YYYY h:mm A")
-                                : "N/A"}
-                        </p>
-                    </div>
+            {/* Category Breakdown */}
+            <div className="card flex flex-col gap-6 p-8">
+                <h2 className="text-xl font-semibold">Performance Breakdown</h2>
+                <div className="flex flex-col gap-5">
+                    {feedback.categoryScores?.map((cat: any, i: number) => (
+                        <div key={i} className="flex flex-col gap-2">
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium text-sm">{cat.name}</span>
+                                <span className={`font-bold text-sm ${scoreColor(cat.score)}`}>
+                                    {cat.score}/100
+                                </span>
+                            </div>
+                            <div className="w-full bg-dark-300 rounded-full h-2">
+                                <div
+                                    className={`h-2 rounded-full transition-all ${scoreBarColor(cat.score)}`}
+                                    style={{ width: `${cat.score}%` }}
+                                />
+                            </div>
+                            <p className="text-gray-400 text-sm">{cat.comment}</p>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            <hr />
+            {/* Strengths & Improvements */}
+            <div className="flex flex-row gap-4 max-sm:flex-col">
 
-            <p>{feedback?.finalAssessment}</p>
-
-            {/* Interview Breakdown */}
-            <div className="flex flex-col gap-4">
-                <h2>Breakdown of the Interview:</h2>
-                {feedback?.categoryScores?.map((category, index) => (
-                    <div key={index}>
-                        <p className="font-bold">
-                            {index + 1}. {category.name} ({category.score}/100)
-                        </p>
-                        <p>{category.comment}</p>
+                {/* Strengths */}
+                <div className="card flex flex-col gap-4 p-6 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <h3 className="font-semibold text-green-400">What You Did Well</h3>
                     </div>
-                ))}
+                    <ul className="flex flex-col gap-3">
+                        {feedback.strengths?.map((s: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                <span className="text-green-500 mt-0.5 shrink-0">•</span>
+                                {s}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                {/* Areas for Improvement */}
+                <div className="card flex flex-col gap-4 p-6 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="text-yellow-400 text-xl">↑</span>
+                        <h3 className="font-semibold text-yellow-400">Areas to Improve</h3>
+                    </div>
+                    <ul className="flex flex-col gap-3">
+                        {feedback.areasForImprovement?.map((a: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                <span className="text-yellow-500 mt-0.5 shrink-0">•</span>
+                                {a}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             </div>
 
-            <div className="flex flex-col gap-3">
-                <h3>Strengths</h3>
-                <ul>
-                    {feedback?.strengths?.map((strength, index) => (
-                        <li key={index}>{strength}</li>
-                    ))}
-                </ul>
-            </div>
-
-            <div className="flex flex-col gap-3">
-                <h3>Areas for Improvement</h3>
-                <ul>
-                    {feedback?.areasForImprovement?.map((area, index) => (
-                        <li key={index}>{area}</li>
-                    ))}
-                </ul>
-            </div>
-
-            <div className="buttons">
+            {/* Actions */}
+            <div className="flex flex-row gap-4 max-sm:flex-col">
                 <Button className="btn-secondary flex-1">
                     <Link href="/" className="flex w-full justify-center">
-                        <p className="text-sm font-semibold text-primary-200 text-center">
-                            Back to dashboard
-                        </p>
+                        <p className="text-sm font-semibold text-primary-200">Back to Dashboard</p>
                     </Link>
                 </Button>
-
                 <Button className="btn-primary flex-1">
-                    <Link
-                        href={`/interview/${id}`}
-                        className="flex w-full justify-center"
-                    >
-                        <p className="text-sm font-semibold text-black text-center">
-                            Retake Interview
-                        </p>
+                    <Link href={`/interview/${id}`} className="flex w-full justify-center">
+                        <p className="text-sm font-semibold text-black">Retake Interview</p>
                     </Link>
                 </Button>
             </div>
