@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import InterviewCard from "@/components/InterviewCard";
@@ -39,6 +40,21 @@ async function Home() {
                     height={400}
                     className="max-sm:hidden"
                 />
+            </section>
+
+            <section className="card-border mt-8">
+                <div className="card flex flex-row px-16 py-8 items-center justify-between max-sm:px-6 max-sm:flex-col max-sm:gap-6">
+                    <div className="flex flex-col gap-6 max-w-lg">
+                        <h2 className="font-bold">Boost Your Chances with an AI Resume Review</h2>
+                        <p className="text-lg">
+                            Get your resume scored, ATS-checked, and improved with instant AI feedback
+                        </p>
+                        <Button asChild className="btn-primary max-sm:w-full">
+                            <Link href="/resume-review" className="font-bold">Review Your Resume</Link>
+                        </Button>
+                    </div>
+                    <FileText size={110} className="text-primary-200 opacity-40 max-sm:hidden shrink-0" />
+                </div>
             </section>
 
             <section className="flex flex-col gap-6 mt-8">
